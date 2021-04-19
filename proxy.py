@@ -2,53 +2,99 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 import random
+from time import sleep
 
 
-url = 'https://www.myxa.com.ua/srs/get-ip/'
+class Proxy:
+    ''' Parsing proxies-numbers from website '''
+    proxy_url = "https://www.ip-adress.com/proxy-list"
+    proxy_lst = []
 
-# header = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36"}
-# # proxy = {'http': 'http://188.190.255.14:8085', 'https': 'http://188.190.255.14:8085'}
-#
-# proxy = {'http': "socks5://192.111.139.165:19402", 'https': "socks5://192.111.139.165:19402"}
-res = [{'http': 'http://148.72.152.156:3128', 'https': 'http://148.72.152.156:3128'}, {'http': 'http://3.141.186.75:3128', 'https': 'http://3.141.186.75:3128'}, {'http': 'http://45.153.33.166:3128', 'https': 'http://45.153.33.166:3128'}, {'http': 'http://132.248.196.2:8080', 'https': 'http://132.248.196.2:8080'}, {'http': 'http://176.113.73.97:3128', 'https': 'http://176.113.73.97:3128'}]
+    def __init__(self):
+        r = requests.get(self.proxy_url, headers={"User-Agent": UserAgent().chrome}, timeout=6)
+        soup = BeautifulSoup(r.content, "html.parser")
+        finder = soup.find('table').find('tbody').find_all("tr")
+        for f in finder:
+            ip = f.find("td").get_text()
+            self.proxy_lst.append(ip)
 
-r = requests.get(url, headers={"User-Agent": UserAgent().chrome}, proxies=random.choice(res))
-
-# # r = requests.get(url, headers={"User-Agent": UserAgent().chrome}, proxies=proxy, verify=False)
-#
-print(r.status_code)
-print(r.text)
-    # soup = BeautifulSoup(r.content, "html.parser")
-    # finders = soup.find_all(class_='')
-    # for finder in finders:
-    #
-    #     f = finder.find().get()
-    #     print(f)
-
-
-# class QuotesSpider(scrapy.Spider):
-#     name = "quotes"
-#
-#     def start_requests(self):
-#         urls = [
-#             'http://quotes.toscrape.com/page/1/',
-#             'http://quotes.toscrape.com/page/2/',
-#         ]
-#         for url in urls:
-#             yield scrapy.Request(url=url, callback=self.parse)
-#
-#     def parse(self, response):
-#         page = response.url.split("/")[-2]
-#         filename = f'quotes-{page}.html'
-#         with open(filename, 'wb') as f:
-#             f.write(response.body)
-#         self.log(f'Saved file {filename}')
+    def pars_proxy(self):
+        with open("proxy_list", "w") as f:
+            for proxy in self.proxy_lst:
+                prox = str(proxy.strip()) + ", "
+                f.write(prox[:-1])
 
 
 
+def pars_pagination():
+    lst_url = ["https://quotes.toscrape.com/page/1/"]
+    url = "https://quotes.toscrape.com"
+    while int(lst_url[-1][-2]) < 10:
+        try:
+            r = requests.get(lst_url[-1], headers={"User-Agent": UserAgent().chrome})
+            soup = BeautifulSoup(r.content, "html.parser")
+            finder = soup.find(class_="pager").find(class_="next").find("a").get("href")
+            lst_url.append(url + finder)
+        except:
+          break
+
+    return lst_url
 
 
+def check_ip(proxs):
+
+    good_proxy = []
+    for prox in proxs:
+        proxi = {'http': f'http://{prox}', 'https': f'http://{prox}'}
+        print(proxi)
+
+        try:
+            req = requests.get("https://proxy6.net/en/privacy",
+                               headers={"User-Agent": UserAgent().chrome},
+                               proxies=proxi,
+                               timeout=10)
+            if req.status_code == 200:
+                good_proxy.append(proxi)
+        except:
+            continue
+    print(good_proxy)
+    return good_proxy
 
 
+def pars_shop(url_page, check_proxy):
+    sleep(random.uniform(2, 6))
+    value = True
+    print(url_page)
+    while value:
+        try:
+            ip = random.choice(check_proxy)
+            req = requests.get(url_page,
+                               headers={"User-Agent": UserAgent().chrome},
+                               proxies=ip,
+                               timeout=10)
+            value = False
+        except :
+            print("Oops!")
+        else:
+            print(req.status_code)
+            soup = BeautifulSoup(req.content, 'html.parser')
+            quits = soup.find_all(class_="text")
+            for quit in quits:
+                pars_result = quit.get_text()
+                print(pars_result)
 
 
+if __name__ == "__main__":
+    a = Proxy()
+    result = a.pars_proxy()
+
+
+    with open("proxy_list", "r") as proxy_f:
+        proxs = proxy_f.readline().split(",")
+        proxs.pop()
+
+    checker = check_ip(proxs)
+
+    url_pages = pars_pagination()
+    for url_p in url_pages:
+        pars_shop(url_p, checker)
