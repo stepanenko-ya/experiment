@@ -25,7 +25,6 @@ class Proxy:
                 f.write(prox[:-1])
 
 
-
 def pars_pagination():
     lst_url = ["https://quotes.toscrape.com/page/1/"]
     url = "https://quotes.toscrape.com"
@@ -42,7 +41,6 @@ def pars_pagination():
 
 
 def check_ip(proxs):
-
     good_proxy = []
     for prox in proxs:
         proxi = {'http': f'http://{prox}', 'https': f'http://{prox}'}
@@ -84,17 +82,18 @@ def pars_shop(url_page, check_proxy):
                 print(pars_result)
 
 
-if __name__ == "__main__":
-    a = Proxy()
-    result = a.pars_proxy()
-
-
-    with open("proxy_list", "r") as proxy_f:
-        proxs = proxy_f.readline().split(",")
-        proxs.pop()
-
+def main(proxs):
     checker = check_ip(proxs)
-
     url_pages = pars_pagination()
     for url_p in url_pages:
         pars_shop(url_p, checker)
+
+
+if __name__ == "__main__":
+
+    a = Proxy()
+    a.pars_proxy()
+    proxs = open("proxy_list").readline().split(",")
+    proxs.pop()
+    main(proxs)
+
